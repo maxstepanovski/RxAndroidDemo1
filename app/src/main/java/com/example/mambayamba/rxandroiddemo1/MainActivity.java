@@ -47,27 +47,33 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         refresher.setOnRefreshListener(this);
     }
 
-    private Observable<List<ResolveInfo>> createResolveObservable(){
+    private Observable<ResolveInfo> createResolveObservable(){
         //создаём обозреваемый объект, достаём с помощью интент фильтра информацию о приложениях
         return Observable.create(subscriber -> {
             Intent intent = new Intent(Intent.ACTION_MAIN, null);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             List<ResolveInfo> resolverList = getPackageManager().queryIntentActivities(intent, 0);
 
-            for(ResolveInfo info: resolverList)
+            for(ResolveInfo info: resolverList){
                 Log.d("happy", info.toString()+"\n");
+                subscriber.onNext(info);                //передаём список приложений обозревателю
+            }
 
-            subscriber.onNext(resolverList);    //передаём список приложений обозревателю
             if(!subscriber.isUnsubscribed())    //если подспписка есть -> завершаем передачу
                 subscriber.onCompleted();
         });
     }
-    private void subscribeOnResolveObservable(Observable<List<ResolveInfo>> observable){
-        observable.subscribe(new Subscriber<List<ResolveInfo>>() {
+    private void subscribeOnResolveObservable(Observable<ResolveInfo> observable){
+        observable
+                .filter((ResolveInfo appInfo)-> appInfo.loadLabel(getPackageManager()).toString().charAt(0) == 'C')
+                .subscribe(new Subscriber<ResolveInfo>() {
+            List<ResolveInfo> resolveInfos = new ArrayList<ResolveInfo>();
+
             @Override
             public void onCompleted() {
                 Log.d("happy", "onCompleted");
                 Toast.makeText(MainActivity.this, "Here is the list!", Toast.LENGTH_SHORT).show();
+                recycler.setAdapter(new RxAdapter(resolveInfos));
                 refresher.setRefreshing(false);
             }
             @Override
@@ -77,10 +83,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
             }
             @Override
-            public void onNext(List<ResolveInfo> appInfos) {
+            public void onNext(ResolveInfo appInfos) {
                 Log.d("happy", "onNext");
-                rxAdapter = new RxAdapter(appInfos);
-                recycler.setAdapter(rxAdapter);
+                resolveInfos.add(appInfos);
             }
         });
     }
