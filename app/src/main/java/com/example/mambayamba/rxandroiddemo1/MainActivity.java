@@ -70,28 +70,31 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 /*
                 added up a filter, that emits applications, which names begin with 'C'
                  */
+                //.take(5)  //taking determined amount of elements (from beginning)
+                //.takeLast(4) //taking elements beginning from the last one
+                .repeat(3) //repeat emition N times
                 .subscribe(new Subscriber<ResolveInfo>() {
-            List<ResolveInfo> resolveInfos = new ArrayList<ResolveInfo>();
+                    List<ResolveInfo> resolveInfos = new ArrayList<ResolveInfo>();
 
-            @Override
-            public void onCompleted() {
-                Log.d("happy", "onCompleted");
-                Toast.makeText(MainActivity.this, "Here is the list!", Toast.LENGTH_SHORT).show();
-                recycler.setAdapter(new RxAdapter(resolveInfos));
-                refresher.setRefreshing(false);
-            }
-            @Override
-            public void onError(Throwable e) {
-                Log.d("happy", "onError: "+e);
-                refresher.setRefreshing(false);
-                Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            public void onNext(ResolveInfo appInfos) {
-                Log.d("happy", "onNext");
-                resolveInfos.add(appInfos);
-            }
-        });
+                    @Override
+                    public void onCompleted() {
+                       Log.d("happy", "onCompleted");
+                       Toast.makeText(MainActivity.this, "Here is the list!", Toast.LENGTH_SHORT).show();
+                      recycler.setAdapter(new RxAdapter(resolveInfos));
+                      refresher.setRefreshing(false);
+                    }
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d("happy", "onError: "+e);
+                        refresher.setRefreshing(false);
+                        Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    }
+                    @Override
+                    public void onNext(ResolveInfo appInfos) {
+                        Log.d("happy", "onNext");
+                        resolveInfos.add(appInfos);
+                    }
+                });
     }
 
     @Override
@@ -125,19 +128,16 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         public RxAdapter(List<ResolveInfo> list) {
             this.list = list;
         }
-
         @Override
         public RxHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
             return new RxHolder(inflater.inflate(R.layout.holder_rx, parent, false));
         }
-
         @Override
         public void onBindViewHolder(RxHolder holder, int position) {
             holder.holderText.setText(list.get(position).loadLabel(getPackageManager()));
             holder.holderImage.setImageDrawable(list.get(position).loadIcon(getPackageManager()));
         }
-
         @Override
         public int getItemCount() {
             return list.size();
