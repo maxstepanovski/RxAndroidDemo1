@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private Observable<ResolveInfo> createResolveObservable(){
-        //создаём обозреваемый объект, достаём с помощью интент фильтра информацию о приложениях
+        //creating observable, getting a list of runnable applications
         return Observable.create(subscriber -> {
             Intent intent = new Intent(Intent.ACTION_MAIN, null);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -56,16 +56,20 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
             for(ResolveInfo info: resolverList){
                 Log.d("happy", info.toString()+"\n");
-                subscriber.onNext(info);                //передаём список приложений обозревателю
+                subscriber.onNext(info);                //passing list element to observer
             }
 
-            if(!subscriber.isUnsubscribed())    //если подспписка есть -> завершаем передачу
+            if(!subscriber.isUnsubscribed())    //if there is a subscription -> complete
                 subscriber.onCompleted();
         });
     }
     private void subscribeOnResolveObservable(Observable<ResolveInfo> observable){
         observable
-                .filter((ResolveInfo appInfo)-> appInfo.loadLabel(getPackageManager()).toString().charAt(0) == 'C')
+                .filter((ResolveInfo appInfo)->
+                        appInfo.loadLabel(getPackageManager()).toString().charAt(0) == 'C')
+                /*
+                added up a filter, that emits applications, which names begin with 'C'
+                 */
                 .subscribe(new Subscriber<ResolveInfo>() {
             List<ResolveInfo> resolveInfos = new ArrayList<ResolveInfo>();
 
@@ -102,6 +106,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         button.setActivated(false);
     }
 
+    /*
+    standard recyclerview biolerplate
+     */
     static class RxHolder extends RecyclerView.ViewHolder{
         @BindView(R.id.holder_image)ImageView holderImage;
         @BindView(R.id.holder_text)TextView holderText;
