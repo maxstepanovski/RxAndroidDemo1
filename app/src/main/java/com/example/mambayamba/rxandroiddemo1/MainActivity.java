@@ -47,42 +47,54 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         refresher.setOnRefreshListener(this);
     }
 
-    private Observable<List<ResolveInfo>> createResolveObservable(){
-        //создаём обозреваемый объект, достаём с помощью интент фильтра информацию о приложениях
+    private Observable<ResolveInfo> createResolveObservable(){
+        //creating observable, getting a list of runnable applications
         return Observable.create(subscriber -> {
             Intent intent = new Intent(Intent.ACTION_MAIN, null);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             List<ResolveInfo> resolverList = getPackageManager().queryIntentActivities(intent, 0);
 
-            for(ResolveInfo info: resolverList)
+            for(ResolveInfo info: resolverList){
                 Log.d("happy", info.toString()+"\n");
+                subscriber.onNext(info);                //passing list element to observer
+            }
 
-            subscriber.onNext(resolverList);    //передаём список приложений обозревателю
-            if(!subscriber.isUnsubscribed())    //если подспписка есть -> завершаем передачу
+            if(!subscriber.isUnsubscribed())    //if there is a subscription -> complete
                 subscriber.onCompleted();
         });
     }
-    private void subscribeOnResolveObservable(Observable<List<ResolveInfo>> observable){
-        observable.subscribe(new Subscriber<List<ResolveInfo>>() {
-            @Override
-            public void onCompleted() {
-                Log.d("happy", "onCompleted");
-                Toast.makeText(MainActivity.this, "Here is the list!", Toast.LENGTH_SHORT).show();
-                refresher.setRefreshing(false);
-            }
-            @Override
-            public void onError(Throwable e) {
-                Log.d("happy", "onError: "+e);
-                refresher.setRefreshing(false);
-                Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            public void onNext(List<ResolveInfo> appInfos) {
-                Log.d("happy", "onNext");
-                rxAdapter = new RxAdapter(appInfos);
-                recycler.setAdapter(rxAdapter);
-            }
-        });
+    private void subscribeOnResolveObservable(Observable<ResolveInfo> observable){
+        observable
+                .filter((ResolveInfo appInfo)->
+                        appInfo.loadLabel(getPackageManager()).toString().charAt(0) == 'C')
+                /*
+                added up a filter, that emits applications, which names begin with 'C'
+                 */
+                //.take(5)  //taking determined amount of elements (from beginning)
+                //.takeLast(4) //taking elements beginning from the last one
+                .repeat(3) //repeat emition N times
+                .subscribe(new Subscriber<ResolveInfo>() {
+                    List<ResolveInfo> resolveInfos = new ArrayList<ResolveInfo>();
+
+                    @Override
+                    public void onCompleted() {
+                       Log.d("happy", "onCompleted");
+                       Toast.makeText(MainActivity.this, "Here is the list!", Toast.LENGTH_SHORT).show();
+                      recycler.setAdapter(new RxAdapter(resolveInfos));
+                      refresher.setRefreshing(false);
+                    }
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d("happy", "onError: "+e);
+                        refresher.setRefreshing(false);
+                        Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    }
+                    @Override
+                    public void onNext(ResolveInfo appInfos) {
+                        Log.d("happy", "onNext");
+                        resolveInfos.add(appInfos);
+                    }
+                });
     }
 
     @Override
@@ -97,6 +109,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         button.setActivated(false);
     }
 
+    /*
+    standard recyclerview biolerplate
+     */
     static class RxHolder extends RecyclerView.ViewHolder{
         @BindView(R.id.holder_image)ImageView holderImage;
         @BindView(R.id.holder_text)TextView holderText;
@@ -113,19 +128,16 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         public RxAdapter(List<ResolveInfo> list) {
             this.list = list;
         }
-
         @Override
         public RxHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
             return new RxHolder(inflater.inflate(R.layout.holder_rx, parent, false));
         }
-
         @Override
         public void onBindViewHolder(RxHolder holder, int position) {
             holder.holderText.setText(list.get(position).loadLabel(getPackageManager()));
             holder.holderImage.setImageDrawable(list.get(position).loadIcon(getPackageManager()));
         }
-
         @Override
         public int getItemCount() {
             return list.size();
